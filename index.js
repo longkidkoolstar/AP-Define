@@ -1,3 +1,13 @@
+if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js')
+      .then((registration) => {
+        console.log('Service worker registered:', registration);
+      })
+      .catch((error) => {
+        console.error('Service worker registration failed:', error);
+      });
+  }
+
 document.addEventListener('DOMContentLoaded', () => {
     const searchInput = document.getElementById('search-input');
     const searchBtn = document.getElementById('search-btn');
@@ -88,25 +98,24 @@ document.addEventListener('DOMContentLoaded', () => {
     // Function to fetch word data
     async function fetchWordData(word) {
         try {
-            showLoading();
-            
-            const response = await fetch(`${API_URL}${word}`);
-            
-            if (!response.ok) {
-                throw new Error('Word not found');
-            }
-            
-            const data = await response.json();
-            
-            // Add to search history
-            addToHistory(word);
-            
+        const cache = await caches.open('ap-define-cache');
+        const cachedResponse = await cache.match(`${API_URL}${word}`);
+        if (cachedResponse) {
+            const data = await cachedResponse.json();
             displayResult(data);
+        } else {
+            const response = await fetch(`${API_URL}${word}`);
+            if (!response.ok) {
+            throw new Error('Word not found');
+            }
+            const data = await response.json();
+            await cache.put(`${API_URL}${word}`, new Response(JSON.stringify(data)));
+            displayResult(data);
+        }
         } catch (error) {
-            showError();
+        showError();
         }
     }
-    
     // Function to add word to search history
     function addToHistory(word) {
         // Convert to lowercase for consistency
