@@ -9,6 +9,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const loadingDiv = document.getElementById('loading');
     const errorDiv = document.getElementById('error');
     const historyContainer = document.getElementById('history-container');
+    const themeToggle = document.getElementById('theme-toggle');
     
     document.getElementById('loading').classList.add('hidden');
     document.getElementById('error').classList.add('hidden');
@@ -31,6 +32,57 @@ document.addEventListener('DOMContentLoaded', () => {
         document.querySelector('header').classList.add('fade-in');
         document.querySelector('.search-wrapper').classList.add('fade-in');
         document.querySelector('.result-container').classList.add('fade-in');
+        
+        // Set up dark mode toggle functionality
+        initThemeToggle();
+    }
+    
+    // Initialize theme toggle
+    function initThemeToggle() {
+        // Check for saved theme preference or use system preference
+        const savedTheme = localStorage.getItem('apDefineTheme');
+        const prefersDarkScheme = window.matchMedia('(prefers-color-scheme: dark)');
+        
+        // Apply theme based on saved preference or system preference
+        if (savedTheme === 'dark' || (!savedTheme && prefersDarkScheme.matches)) {
+            enableDarkMode();
+        } else {
+            enableLightMode();
+        }
+        
+        // Theme toggle click event
+        themeToggle.addEventListener('click', toggleTheme);
+    }
+    
+    // Toggle between light and dark themes
+    function toggleTheme() {
+        if (document.body.classList.contains('dark-mode')) {
+            enableLightMode();
+        } else {
+            enableDarkMode();
+        }
+        
+        // Add transition effect
+        document.body.classList.add('mode-transition');
+        setTimeout(() => {
+            document.body.classList.remove('mode-transition');
+        }, 300);
+    }
+    
+    // Enable dark mode
+    function enableDarkMode() {
+        document.body.classList.add('dark-mode');
+        themeToggle.querySelector('i').className = 'fas fa-sun';
+        themeToggle.querySelector('.theme-label').textContent = 'Light Mode';
+        localStorage.setItem('apDefineTheme', 'dark');
+    }
+    
+    // Enable light mode
+    function enableLightMode() {
+        document.body.classList.remove('dark-mode');
+        themeToggle.querySelector('i').className = 'fas fa-moon';
+        themeToggle.querySelector('.theme-label').textContent = 'Dark Mode';
+        localStorage.setItem('apDefineTheme', 'light');
     }
     
     // Function to fetch word data
@@ -270,12 +322,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
     });
-    
-    // Add dark mode toggle
-    const prefersDarkScheme = window.matchMedia('(prefers-color-scheme: dark)');
-    if (prefersDarkScheme.matches) {
-        document.body.classList.add('dark-mode');
-    }
     
     // Initialize app
     init();

@@ -6,12 +6,22 @@
     <title>AP-Define | Elegant Dictionary</title>
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* Inline critical CSS to prevent FOUC */
+        body {
+            opacity: 0; /* Hide content initially */
+        }
+    </style>
 </head>
 <body>
     <div class="container">
         <header>
             <h1>AP-Define</h1>
             <p class="tagline">Your elegant dictionary companion</p>
+            <div class="theme-toggle" id="theme-toggle">
+                <i class="fas fa-moon"></i>
+                <span class="theme-label">Dark Mode</span>
+            </div>
         </header>
         
         <div class="search-wrapper">
@@ -57,5 +67,11 @@
     </div>
     
     <script src="index.js"></script>
+    <script>
+        // Reveal content after styles are loaded
+        window.onload = function() {
+            document.body.style.opacity = 1;
+        };
+    </script>
 </body>
 </html>
