@@ -98,22 +98,28 @@ document.addEventListener('DOMContentLoaded', () => {
     // Function to fetch word data
     async function fetchWordData(word) {
         try {
-        const cache = await caches.open('ap-define-cache');
-        const cachedResponse = await cache.match(`${API_URL}${word}`);
-        if (cachedResponse) {
-            const data = await cachedResponse.json();
-            displayResult(data);
-        } else {
-            const response = await fetch(`${API_URL}${word}`);
-            if (!response.ok) {
-            throw new Error('Word not found');
+            showLoading(); // Show loading indicator
+    
+            const cache = await caches.open('ap-define-cache');
+            let data; 
+            const cachedResponse = await cache.match(`${API_URL}${word}`);
+    
+            if (cachedResponse) {
+                data = await cachedResponse.json();
+            } else {
+                const response = await fetch(`${API_URL}${word}`);
+                if (!response.ok) {
+                    throw new Error('Word not found');
+                }
+                data = await response.json();
+                await cache.put(`${API_URL}${word}`, new Response(JSON.stringify(data)));
             }
-            const data = await response.json();
-            await cache.put(`${API_URL}${word}`, new Response(JSON.stringify(data)));
+    
+            addToHistory(word); // Add to search history
             displayResult(data);
-        }
+    
         } catch (error) {
-        showError();
+            showError();
         }
     }
     // Function to add word to search history
