@@ -120,6 +120,7 @@ self.addEventListener('install', (event) => {
           'icons/ios/256.png',
           'icons/ios/512.png',
           'icons/ios/1024.png',
+          'icons/favicon.png',
 
         ]);
       })
