@@ -110,17 +110,23 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const cache = await caches.open('ap-define-cache');
             let data; 
-            const cachedResponse = await cache.match(`${API_URL}${word}`);
+
+            // Convert word to lowercase for consistent cache keys
+            const cacheKey = API_URL + word.toLowerCase();
+
+            const cachedResponse = await cache.match(cacheKey);
 
             if (cachedResponse) {
                 data = await cachedResponse.json();
             } else {
-                const response = await fetch(`${API_URL}${word}`);
+                const response = await fetch(API_URL + word); // Original word for API call
                 if (!response.ok) {
                     throw new Error('Word not found');
                 }
                 data = await response.json();
-                await cache.put(`${API_URL}${word}`, new Response(JSON.stringify(data)));
+
+                // Cache the response using the lowercase key
+                await cache.put(cacheKey, new Response(JSON.stringify(data))); 
             }
 
             // Reset retry count
@@ -139,6 +145,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
     }
+
     
     // Function to find closest words
     async function findClosestWords(word) {
@@ -160,6 +167,8 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Function to display closest word message
    async function displayClosestWordMessage(originalWord, closestWord) {
+    console.log("Displaying closest word message");
+
         return new Promise((resolve) => {
             // Remove any existing closest word message
             const existingMessage = resultDiv.querySelector('.closest-word-message');
