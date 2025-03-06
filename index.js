@@ -1,3 +1,4 @@
+// index.js
 if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('sw.js')
       .then((registration) => {
@@ -6,7 +7,7 @@ if ('serviceWorker' in navigator) {
       .catch((error) => {
         console.error('Service worker registration failed:', error);
       });
-  }
+}
 
 document.addEventListener('DOMContentLoaded', () => {
     const searchInput = document.getElementById('search-input');
@@ -32,6 +33,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // API URL for Free Dictionary API
     const API_URL = 'https://api.dictionaryapi.dev/api/v2/entries/en/';
+    const DATAMUSE_API_URL = 'https://api.datamuse.com/words?sp=';
     
     // Initialize the app
     function init() {
@@ -95,15 +97,21 @@ document.addEventListener('DOMContentLoaded', () => {
         localStorage.setItem('apDefineTheme', 'light');
     }
     
+    // Define the maximum number of retries
+    const MAX_RETRIES = 3;
+
+    // Initialize the retry count
+    let retryCount = 0;
+
     // Function to fetch word data
     async function fetchWordData(word) {
         try {
             showLoading(); // Show loading indicator
-    
+
             const cache = await caches.open('ap-define-cache');
             let data; 
             const cachedResponse = await cache.match(`${API_URL}${word}`);
-    
+
             if (cachedResponse) {
                 data = await cachedResponse.json();
             } else {
@@ -114,14 +122,77 @@ document.addEventListener('DOMContentLoaded', () => {
                 data = await response.json();
                 await cache.put(`${API_URL}${word}`, new Response(JSON.stringify(data)));
             }
-    
+
+            // Reset retry count
+            retryCount = 0;
+
             addToHistory(word); // Add to search history
             displayResult(data);
+
+        } catch (error) {
+            // If word not found, try to find closest words
+            if (retryCount < MAX_RETRIES) {
+                retryCount++;
+                findClosestWords(word);
+            } else {
+                showError();
+            }
+        }
+    }
     
+    // Function to find closest words
+    async function findClosestWords(word) {
+        try {
+            const response = await fetch(`${DATAMUSE_API_URL}${word}`);
+            const data = await response.json();
+            
+            if (data.length > 0) {
+                const closestWord = data[0].word;
+              await displayClosestWordMessage(word, closestWord);
+                fetchWordData(closestWord);
+            } else {
+                showError();
+            }
         } catch (error) {
             showError();
         }
     }
+    
+    // Function to display closest word message
+   async function displayClosestWordMessage(originalWord, closestWord) {
+        return new Promise((resolve) => {
+            // Remove any existing closest word message
+            const existingMessage = resultDiv.querySelector('.closest-word-message');
+            if (existingMessage) {
+                existingMessage.remove();
+            }
+    
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'closest-word-message';
+            messageDiv.innerHTML = `Showing results for: <strong>${closestWord}</strong>. Search instead for: <strong>${originalWord}</strong>`;
+            resultDiv.insertBefore(messageDiv, resultDiv.firstChild);
+            resolve();
+        });
+    }
+    
+    // Function to find closest words
+    async function findClosestWords(word) {
+        try {
+            const response = await fetch(`${DATAMUSE_API_URL}${word}`);
+            const data = await response.json();
+            
+            if (data.length > 0) {
+                const closestWord = data[0].word;
+                await displayClosestWordMessage(word, closestWord);
+                fetchWordData(closestWord);
+            } else {
+                showError();
+            }
+        } catch (error) {
+            showError();
+        }
+    }
+    
     // Function to add word to search history
     function addToHistory(word) {
         // Convert to lowercase for consistency
@@ -171,6 +242,12 @@ document.addEventListener('DOMContentLoaded', () => {
         phoneticDiv.textContent = '';
         audioContainer.innerHTML = '';
         meaningsContainer.innerHTML = '';
+        
+        // Remove closest word message if exists
+        const closestWordMessage = resultDiv.querySelector('.closest-word-message');
+        if (closestWordMessage) {
+            closestWordMessage.remove();
+        }
         
         // Get the first result
         const wordData = data[0];
@@ -284,7 +361,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Scroll to result if not visible
         resultDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
-    
+        
     // Function to get audio URL from phonetics array
     function getAudioUrl(phonetics) {
         if (!phonetics || phonetics.length === 0) return null;
