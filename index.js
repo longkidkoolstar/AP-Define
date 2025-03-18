@@ -110,29 +110,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const cache = await caches.open('ap-define-cache');
             let data; 
-
-            // Convert word to lowercase for consistent cache keys
-            const cacheKey = API_URL + word.toLowerCase();
-
-            const cachedResponse = await cache.match(cacheKey);
+            const lowerCaseWord = word.toLowerCase(); // Convert to lowercase for caching
+            const cachedResponse = await cache.match(`${API_URL}${lowerCaseWord}`);
 
             if (cachedResponse) {
                 data = await cachedResponse.json();
             } else {
-                const response = await fetch(API_URL + word); // Original word for API call
+                const response = await fetch(`${API_URL}${word}`);
                 if (!response.ok) {
                     throw new Error('Word not found');
                 }
                 data = await response.json();
-
-                // Cache the response using the lowercase key
-                await cache.put(cacheKey, new Response(JSON.stringify(data))); 
+                await cache.put(`${API_URL}${lowerCaseWord}`, new Response(JSON.stringify(data))); // Use lowercase for cache key
             }
 
             // Reset retry count
             retryCount = 0;
 
-            addToHistory(word); // Add to search history
+            addToHistory(word); // Add to search history (original capitalization)
             displayResult(data);
 
         } catch (error) {
@@ -146,6 +141,24 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // Function to find closest words
+    async function findClosestWords(word) {
+        try {
+            const response = await fetch(`${DATAMUSE_API_URL}${word}`);
+            const data = await response.json();
+            
+            if (data.length > 0) {
+                const closestWord = data[0].word;
+                displayClosestWordMessage(word, closestWord);
+                fetchWordData(closestWord);
+            } else {
+                showError();
+            }
+        } catch (error) {
+            showError();
+        }
+    }
+
     
     // Function to find closest words
     async function findClosestWords(word) {
@@ -155,7 +168,7 @@ document.addEventListener('DOMContentLoaded', () => {
             
             if (data.length > 0) {
                 const closestWord = data[0].word;
-              await displayClosestWordMessage(word, closestWord);
+                displayClosestWordMessage(word, closestWord);
                 fetchWordData(closestWord);
             } else {
                 showError();
@@ -166,39 +179,18 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     // Function to display closest word message
-   async function displayClosestWordMessage(originalWord, closestWord) {
-    console.log("Displaying closest word message");
-
-        return new Promise((resolve) => {
-            // Remove any existing closest word message
-            const existingMessage = resultDiv.querySelector('.closest-word-message');
-            if (existingMessage) {
-                existingMessage.remove();
-            }
-    
+    function displayClosestWordMessage(originalWord, closestWord) {
+        // Check if a closest word message already exists
+        const existingMessage = resultDiv.querySelector('.closest-word-message');
+        if (existingMessage) {
+            // Update the existing message
+            existingMessage.innerHTML = `Showing results for: <strong>${closestWord}</strong>. Search instead for: <strong>${originalWord}</strong>`;
+        } else {
+            // Create a new message
             const messageDiv = document.createElement('div');
             messageDiv.className = 'closest-word-message';
             messageDiv.innerHTML = `Showing results for: <strong>${closestWord}</strong>. Search instead for: <strong>${originalWord}</strong>`;
             resultDiv.insertBefore(messageDiv, resultDiv.firstChild);
-            resolve();
-        });
-    }
-    
-    // Function to find closest words
-    async function findClosestWords(word) {
-        try {
-            const response = await fetch(`${DATAMUSE_API_URL}${word}`);
-            const data = await response.json();
-            
-            if (data.length > 0) {
-                const closestWord = data[0].word;
-                await displayClosestWordMessage(word, closestWord);
-                fetchWordData(closestWord);
-            } else {
-                showError();
-            }
-        } catch (error) {
-            showError();
         }
     }
     
@@ -251,12 +243,6 @@ document.addEventListener('DOMContentLoaded', () => {
         phoneticDiv.textContent = '';
         audioContainer.innerHTML = '';
         meaningsContainer.innerHTML = '';
-        
-        // Remove closest word message if exists
-        const closestWordMessage = resultDiv.querySelector('.closest-word-message');
-        if (closestWordMessage) {
-            closestWordMessage.remove();
-        }
         
         // Get the first result
         const wordData = data[0];
@@ -370,7 +356,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Scroll to result if not visible
         resultDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
-        
+    
     // Function to get audio URL from phonetics array
     function getAudioUrl(phonetics) {
         if (!phonetics || phonetics.length === 0) return null;
